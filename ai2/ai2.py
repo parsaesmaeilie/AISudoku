@@ -1,0 +1,210 @@
+import json
+import random
+import time
+
+
+# *** you can change everything except the name of the class, the act function and the problem_data ***
+
+class Sudoku:
+    def __init__(self, sudoku_arr:list):
+        self.sudoku = sudoku_arr
+        
+    def display(self ,sol):
+        temp_sudoku = self.sudoku
+        for i in sol:
+            temp_sudoku = temp_sudoku.replace('0' ,i,1)
+        for i in range(9):
+            if(i %3 == 0):
+                print('-'*25)
+
+            row = ''
+            for j in range(9):
+                if(j %3 == 0):
+                    row += '| '
+                row += temp_sudoku[i*9+j] +' '
+            print(row+'|')
+        print('-'*25)
+
+
+
+
+    def fitness(self ,solution):
+        #index = 0
+        
+        temp_sudoku = self.sudoku
+        # for i in range(len(temp_sudoku)):
+        #     if(temp_sudoku[i] == 0):
+        #         temp_sudoku[i]=int(solution[index])
+        #         index +=1
+        for i in solution:
+            temp_sudoku = temp_sudoku.replace('0' ,i,1)
+
+        fitness = 0
+        fitness_1 = 0
+        fitness_2 = 0
+        fitness_3 = 0
+
+        for i in range(9):
+            row = temp_sudoku[i*9:i*9+9]
+            for j in range(1,10):
+                if(row.count(str(j)) == 0):
+                    fitness+=1
+                    fitness_1+=1
+                
+        
+        for j in range(3):
+            for k in range(3):
+                col = []
+                index = j*27+k*3
+                col += temp_sudoku[index :index+3]
+                col += temp_sudoku[index+9 :index+12]
+                col += temp_sudoku[index +18:index+21]
+                for i in range(1,10):
+                    if(col.count(str(i)) == 0):
+                        fitness+=1
+                        fitness_2+=1    
+
+        for i in range(9):
+            col = temp_sudoku[i:i+ 9*9:9]
+            for i in range(1,10):
+                if(col.count(str(i)) == 0):
+                    fitness+=1
+                    fitness_3+=1
+            
+        
+
+        return (fitness  , fitness_1 , fitness_2 , fitness_3)
+                
+
+
+class Genetic(object):
+    
+    def __init__(self, sudoku:Sudoku):
+        self.sudoku = sudoku
+        self.solve = False
+        self.solution = ''
+    def create_new_Solution(self, solution_alph , solution_beta):
+        index = random.randint(int(len(solution_alph)/3) , int(2*len(solution_alph)/3))
+        first_child = solution_alph[:index] + solution_beta[index:]
+        second_child = solution_beta[:index] + solution_alph[index:]
+        # first_child = ''
+        # second_child = ''
+        # for i in range(len(solution_alph)):
+        #     res = int(solution_alph[i])+int(solution_beta[i])
+        #     if(res > 9):
+        #         res -=9
+        #     first_child += str(res)
+        # for i in range(len(solution_alph)):
+        #     res = int(solution_alph[i])-int(solution_beta[i])
+        #     if(res < 1):
+        #         res +=9
+        #     second_child += str(res)   
+       
+        
+        fitness_alpha = self.sudoku.fitness(first_child) 
+        fitness_beta = self.sudoku.fitness(second_child)
+        if(fitness_alpha[0] == 0 ):
+            self.solve = True
+            self.solution = first_child
+        if( fitness_beta[0] == 0):
+            self.solve = True
+            self.solution = second_child
+        if(fitness_alpha[0] > fitness_beta[0]):
+            return (second_child , *fitness_beta)
+        return (first_child , *fitness_alpha)
+    def muta_sol(self,solution_str):
+        other_sol = ''
+        if(len(solution_str) > 30 and len(solution_str) <39):
+            other_sol = self.muta_sol(solution_str[9::])
+            solution_str = solution_str[:9]
+
+        index = random.randint(0,len(solution_str)-1)
+        s =[str(x) for x in range(1,10) ]
+        s.remove(solution_str[index])
+        solution_str =  solution_str[:index] + random.choice(s) + solution_str[index+1:] + other_sol
+        return solution_str
+
+        
+        
+        
+    def mutation(self , solution):
+       
+        new_solution= self.muta_sol(solution[0])
+        fitness_sol = self.sudoku.fitness(new_solution)
+        if(fitness_sol[0] == 0):
+            self.solve = True
+            self.solution = new_solution
+        return  (new_solution ,*fitness_sol)
+    def Create_newGeneration(self , solutions:list  ):
+        new_generation = [self.mutation(self.create_new_Solution(solutions[0][0],solutions[1][0])) , ]
+        for i in range(2):
+            for j in solutions[i+2::2]:
+                new_generation.append(self.mutation(self.create_new_Solution(solutions[i][0] , j[0])))
+        # for i in range(len(new_generation)):
+        #     new_generation[i] = self.mutation(new_generation[i])
+        return new_generation
+    def create_random_genum(self ,number):
+        solution = ''
+        digit = str(random.randint(1,9))
+        solution = digit*number
+        # for i in range(50):
+        #     solution += str(random.randint(0,9))
+        return (solution,*self.sudoku.fitness(solution))
+    def create_generation_zero(self):
+        number = self.sudoku.sudoku.count('0')
+#5695386679154823497196418293546216789485243
+        generation0 = []
+        for i in range(number*3):
+            generation0.append(self.create_random_genum(number))
+        return generation0
+    def Solve(self ):
+        next_generation = self.create_generation_zero()
+        while not self.solve:
+            
+            next_generation.sort(key = lambda x : (x[1],min(x[2],x[3] , x[4]),max(x[2],x[3] , x[4])))
+            print('-'*10)
+            for i in next_generation:
+                print(i)
+            print('-'*10)
+            next_generation = self.Create_newGeneration(next_generation)
+    997922817
+
+
+        
+    
+        
+        
+class AI:
+    # ^^^ DO NOT change the name of the class ***
+
+    def __init__(self):
+        pass
+    
+    # the solve function takes a json string as input
+    # and outputs the solved version as json
+    def solve(self, problem):#322138839521597968596537126312449
+        # ^^^ DO NOT change the solve function above ***
+        
+        problem_data = json.loads(problem)
+        # ^^^ DO NOT change the problem_data above ***
+        sudoku = ''.join([str(item) for row in problem_data['sudoku'] for item in row ])
+        
+        
+        problem_sudoku = Sudoku( sudoku)
+        
+        alg = Genetic(problem_sudoku)
+        problem_sudoku.display("6152398579146823947196418239456216784985243")
+        input()
+        start_time = time.time()
+
+        alg.Solve()
+        print(alg.solution)
+        print("--- %s seconds ---" % (time.time() - start_time))
+        # TODO implement your code here
+
+        # finished is the solved version
+        return alg.solution
+
+
+#000003400090005160800000000000000000020080030003040900000502080300000047750000001
+#21887523541834161397781973875595254648669166739296285423966
